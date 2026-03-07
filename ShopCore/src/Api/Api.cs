@@ -1204,7 +1204,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
         {
             if (driverDataType == dataType)
             {
-                return databaseInfo.Value.ToString();
+                return ResolveConnectionStringFromDatabaseInfo(dataType, databaseInfo.Value);
             }
         }
 
@@ -1219,6 +1219,11 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
     {
         var value = ExpandPathTokens(configuredValue.Trim(), pluginDataDirectory);
 
+        if (dataType == DataType.MySql)
+        {
+            return NormalizeMySqlConnectionString(value);
+        }
+
         if (dataType != DataType.Sqlite)
         {
             return value;
@@ -1231,6 +1236,113 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
         }
 
         return value;
+    }
+
+    private static string ResolveConnectionStringFromDatabaseInfo(DataType dataType, DatabaseConnectionInfo databaseInfo)
+    {
+        var resolved = databaseInfo.ToString();
+        return dataType == DataType.MySql
+            ? NormalizeMySqlConnectionString(resolved)
+            : resolved;
+    }
+
+    private static string NormalizeMySqlConnectionString(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = value.Trim();
+        if (!trimmed.Contains("://", StringComparison.Ordinal))
+        {
+            return trimmed;
+        }
+
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            return trimmed;
+        }
+
+        var scheme = uri.Scheme.ToLowerInvariant();
+        if (scheme is not "mysql" and not "mariadb")
+        {
+            return trimmed;
+        }
+
+        var host = uri.Host;
+        var port = uri.IsDefaultPort || uri.Port <= 0 ? 3306 : uri.Port;
+        var database = uri.AbsolutePath.Trim('/');
+
+        var username = string.Empty;
+        var password = string.Empty;
+        if (!string.IsNullOrWhiteSpace(uri.UserInfo))
+        {
+            var userInfoParts = uri.UserInfo.Split(':', 2);
+            username = Uri.UnescapeDataString(userInfoParts[0]);
+            if (userInfoParts.Length > 1)
+            {
+                password = Uri.UnescapeDataString(userInfoParts[1]);
+            }
+        }
+
+        var parts = new List<string>
+        {
+            $"Server={host}",
+            $"Port={port}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(database))
+        {
+            parts.Add($"Database={database}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            parts.Add($"User ID={username}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            parts.Add($"Password={password}");
+        }
+
+        foreach (var (key, queryValue) in ParseQueryParameters(uri.Query))
+        {
+            if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(queryValue))
+            {
+                parts.Add($"{key}={queryValue}");
+            }
+        }
+
+        return string.Join(';', parts) + ";";
+    }
+
+    private static IEnumerable<(string Key, string Value)> ParseQueryParameters(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            yield break;
+        }
+
+        var span = query.AsSpan();
+        if (span[0] == '?')
+        {
+            span = span[1..];
+        }
+
+        if (span.IsEmpty)
+        {
+            yield break;
+        }
+
+        foreach (var pair in span.ToString().Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var tokens = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(tokens[0]);
+            var value = tokens.Length > 1 ? Uri.UnescapeDataString(tokens[1]) : string.Empty;
+            yield return (key, value);
+        }
     }
 
     private static string ExpandPathTokens(string value, string pluginDataDirectory)
@@ -1583,5 +1695,4 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
         }
     }
 }
-
 
