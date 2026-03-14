@@ -12,7 +12,7 @@ namespace ShopCore;
 
 [PluginMetadata(
     Id = "ShopCore",
-    Version = "v1.1.1",
+    Version = "v1.1.1-beta.v1",
     Name = "ShopCore",
     Author = "T3Marius",
     Description = "Core shop plugin exposing items and credits API."
