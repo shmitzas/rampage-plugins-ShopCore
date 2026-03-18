@@ -35,6 +35,7 @@ public class Shop_PlayerColor : BasePlugin
     private readonly Dictionary<string, PlayerColorItemRuntime> itemRuntimeById = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, float> nextRainbowUpdateAtByPlayerId = new();
     private readonly Dictionary<int, PlayerColorPreviewState> previewRuntimeByPlayerId = new();
+    private readonly Dictionary<int, PlayerColorItemRuntime?> cachedRuntimeByPlayerId = new();
     private readonly Random random = new();
 
     private IShopCoreApiV2? shopApi;
@@ -142,6 +143,7 @@ public class Shop_PlayerColor : BasePlugin
     {
         nextRainbowUpdateAtByPlayerId.Remove(e.PlayerId);
         previewRuntimeByPlayerId.Remove(e.PlayerId);
+        cachedRuntimeByPlayerId.Remove(e.PlayerId);
     }
 
     private void OnTick()
@@ -151,35 +153,45 @@ public class Shop_PlayerColor : BasePlugin
             return;
         }
 
+        if (nextRainbowUpdateAtByPlayerId.Count == 0)
+        {
+            return;
+        }
+
         var currentTime = Core.Engine.GlobalVars.CurrentTime;
 
-        foreach (var player in Core.PlayerManager.GetAllValidPlayers())
+        foreach (var kvp in nextRainbowUpdateAtByPlayerId.ToList())
         {
-            if (player.IsFakeClient)
+            var playerId = kvp.Key;
+            var nextUpdateAt = kvp.Value;
+
+            if (currentTime < nextUpdateAt)
             {
+                continue;
+            }
+
+            var player = Core.PlayerManager.GetPlayer(playerId);
+            if (player is null || !player.IsValid || player.IsFakeClient)
+            {
+                nextRainbowUpdateAtByPlayerId.Remove(playerId);
                 continue;
             }
 
             if (!TryGetActiveRuntime(player, out var runtime))
             {
-                nextRainbowUpdateAtByPlayerId.Remove(player.PlayerID);
+                nextRainbowUpdateAtByPlayerId.Remove(playerId);
                 continue;
             }
 
             if (!runtime.IsRainbow)
             {
-                nextRainbowUpdateAtByPlayerId.Remove(player.PlayerID);
-                continue;
-            }
-
-            if (nextRainbowUpdateAtByPlayerId.TryGetValue(player.PlayerID, out var nextUpdateAt) && currentTime < nextUpdateAt)
-            {
+                nextRainbowUpdateAtByPlayerId.Remove(playerId);
                 continue;
             }
 
             var rainbowColor = NextRainbowColor();
             ApplyColor(player, rainbowColor);
-            nextRainbowUpdateAtByPlayerId[player.PlayerID] = currentTime + runtime.RainbowUpdateIntervalSeconds;
+            nextRainbowUpdateAtByPlayerId[playerId] = currentTime + runtime.RainbowUpdateIntervalSeconds;
         }
     }
 
@@ -273,6 +285,7 @@ public class Shop_PlayerColor : BasePlugin
         registeredItemOrder.Clear();
         itemRuntimeById.Clear();
         nextRainbowUpdateAtByPlayerId.Clear();
+        cachedRuntimeByPlayerId.Clear();
         handlersRegistered = false;
     }
 
@@ -328,6 +341,7 @@ public class Shop_PlayerColor : BasePlugin
             }
         }
 
+        cachedRuntimeByPlayerId.Remove(player.PlayerID);
         RefreshPlayerColor(player);
     }
 
@@ -338,6 +352,7 @@ public class Shop_PlayerColor : BasePlugin
             return;
         }
 
+        cachedRuntimeByPlayerId.Remove(player.PlayerID);
         RefreshPlayerColor(player);
     }
 
@@ -348,6 +363,7 @@ public class Shop_PlayerColor : BasePlugin
             return;
         }
 
+        cachedRuntimeByPlayerId.Remove(player.PlayerID);
         RefreshPlayerColor(player);
     }
 
@@ -425,6 +441,16 @@ public class Shop_PlayerColor : BasePlugin
             return false;
         }
 
+        if (cachedRuntimeByPlayerId.TryGetValue(player.PlayerID, out var cached))
+        {
+            if (cached.HasValue)
+            {
+                runtime = cached.Value;
+                return true;
+            }
+            return false;
+        }
+
         foreach (var itemId in registeredItemOrder)
         {
             if (!itemRuntimeById.TryGetValue(itemId, out var itemRuntime))
@@ -438,9 +464,11 @@ public class Shop_PlayerColor : BasePlugin
             }
 
             runtime = itemRuntime;
+            cachedRuntimeByPlayerId[player.PlayerID] = runtime;
             return true;
         }
 
+        cachedRuntimeByPlayerId[player.PlayerID] = null;
         return false;
     }
 
