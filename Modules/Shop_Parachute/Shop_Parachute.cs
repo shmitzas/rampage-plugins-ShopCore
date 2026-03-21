@@ -347,7 +347,7 @@ public class Shop_Parachute : BasePlugin
 
         var player = context.Player;
         var loc = Core.Translation.GetPlayerLocalizer(player);
-        context.Block($"{GetPrefix(player)} {loc["error.permission", context.Item.DisplayName, runtime.RequiredPermission]}");
+        context.Block($"{GetPrefix(player)} {loc["error.permission", shopApi?.GetItemDisplayName(player, context.Item) ?? context.Item.DisplayName, runtime.RequiredPermission]}");
     }
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
@@ -426,7 +426,7 @@ public class Shop_Parachute : BasePlugin
 
             var loc = Core.Translation.GetPlayerLocalizer(player);
             player.SendChat(
-                $"{GetPrefix(player)} {loc["preview.started", item.DisplayName, (int)PreviewDurationSeconds]}"
+                $"{GetPrefix(player)} {loc["preview.started", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName, (int)PreviewDurationSeconds]}"
             );
         });
     }
@@ -776,7 +776,8 @@ public class Shop_Parachute : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(itemTemplate, player)
         );
 
         var fallSpeed = itemTemplate.FallSpeed ?? settings.DefaultFallSpeed;
@@ -802,14 +803,15 @@ public class Shop_Parachute : BasePlugin
         return true;
     }
 
-    private string ResolveDisplayName(ParachuteItemTemplate itemTemplate)
+    private string ResolveDisplayName(ParachuteItemTemplate itemTemplate, IPlayer? player = null)
     {
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
+            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase)
-                ? Core.Localizer[key]
-                : Core.Localizer[key, FormatDuration(itemTemplate.DurationSeconds)];
+                ? localizer[key]
+                : localizer[key, FormatDuration(itemTemplate.DurationSeconds)];
             if (!string.Equals(localized, key, StringComparison.Ordinal))
             {
                 return localized;

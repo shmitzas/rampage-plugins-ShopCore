@@ -229,7 +229,7 @@ public class Shop_Bhop : BasePlugin
 
         var player = context.Player;
         var loc = Core.Translation.GetPlayerLocalizer(player);
-        context.Block($"{GetPrefix(player)} {loc["error.permission", context.Item.DisplayName, runtime.RequiredPermission]}");
+        context.Block($"{GetPrefix(player)} {loc["error.permission", shopApi?.GetItemDisplayName(player, context.Item) ?? context.Item.DisplayName, runtime.RequiredPermission]}");
     }
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
@@ -307,7 +307,7 @@ public class Shop_Bhop : BasePlugin
             ExpiresAt: Core.Engine.GlobalVars.CurrentTime + PreviewDurationSeconds
         );
 
-        SendPreviewMessage(player, "preview.started", item.DisplayName, (int)PreviewDurationSeconds);
+        SendPreviewMessage(player, "preview.started", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName, (int)PreviewDurationSeconds);
     }
 
     private void OnClientConnected(IOnClientConnectedEvent @event)
@@ -698,7 +698,8 @@ public class Shop_Bhop : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(itemTemplate, player)
         );
 
         runtime = new BhopItemRuntime(
@@ -710,14 +711,15 @@ public class Shop_Bhop : BasePlugin
         return true;
     }
 
-    private string ResolveDisplayName(BhopItemTemplate itemTemplate)
+    private string ResolveDisplayName(BhopItemTemplate itemTemplate, IPlayer? player = null)
     {
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
+            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase)
-                ? Core.Localizer[key]
-                : Core.Localizer[key, FormatDuration(itemTemplate.DurationSeconds)];
+                ? localizer[key]
+                : localizer[key, FormatDuration(itemTemplate.DurationSeconds)];
             if (!string.Equals(localized, key, StringComparison.Ordinal))
             {
                 return localized;

@@ -126,6 +126,7 @@ public sealed class ShopBeforeToggleContext : ShopBeforeActionContext
 /// <param name="CanBeSold">Whether selling this item is allowed.</param>
 /// <param name="AllowPreview">Whether preview action should appear in buy item menu.</param>
 /// <param name="IsEquipable">Whether item should be owned/equipped. Set to false for one-time buy items.</param>
+/// <param name="DisplayNameResolver">Optional player-aware display name resolver.</param>
 public sealed record ShopItemDefinition(
     string Id,
     string DisplayName,
@@ -138,7 +139,8 @@ public sealed record ShopItemDefinition(
     bool Enabled = true,
     bool CanBeSold = true,
     bool AllowPreview = true,
-    bool IsEquipable = true
+    bool IsEquipable = true,
+    Func<IPlayer?, string>? DisplayNameResolver = null
 );
 /// <summary>
 /// Unified transaction result for buy/sell operations.
@@ -255,6 +257,16 @@ public interface IShopCoreApiV2
     /// Returns all items in a category.
     /// </summary>
     IReadOnlyCollection<ShopItemDefinition> GetItemsByCategory(string category);
+
+    /// <summary>
+    /// Returns the display name for an item, localized for the provided player when available.
+    /// </summary>
+    string GetItemDisplayName(IPlayer? player, ShopItemDefinition item);
+
+    /// <summary>
+    /// Returns whether an item should be visible to the provided player in menus.
+    /// </summary>
+    bool IsItemVisibleToPlayer(IPlayer player, ShopItemDefinition item);
 
     /// <summary>
     /// Loads a module config from centralized ShopCore module config storage.

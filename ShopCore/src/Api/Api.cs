@@ -29,6 +29,8 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
     private readonly object ledgerStoreSync = new();
     private readonly object knownModulesSync = new();
     private readonly object previewCooldownSync = new();
+    private bool missingCookiesWarningLogged;
+    private bool missingEconomyWarningLogged;
     private readonly Dictionary<string, ShopItemDefinition> itemsById = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, HashSet<string>> categoryToIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> knownModulePluginIds = new(StringComparer.OrdinalIgnoreCase);
@@ -195,6 +197,40 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
             return result;
         }
+    }
+
+    public string GetItemDisplayName(IPlayer? player, ShopItemDefinition item)
+    {
+        if (item is null)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var resolved = item.DisplayNameResolver?.Invoke(player);
+            if (!string.IsNullOrWhiteSpace(resolved))
+            {
+                return resolved;
+            }
+        }
+        catch (Exception ex)
+        {
+            plugin.LogDebug(
+                "Failed to resolve dynamic display name for item '{ItemId}'. Error={Error}",
+                item.Id,
+                ex.Message
+            );
+        }
+
+        return item.DisplayName;
+    }
+
+    public bool IsItemVisibleToPlayer(IPlayer player, ShopItemDefinition item)
+    {
+        return item is not null
+            && item.Enabled
+            && IsTeamAllowed(player, item.Team);
     }
 
     public T LoadModuleConfig<T>(
@@ -479,13 +515,21 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public decimal GetCredits(IPlayer player)
     {
-        EnsureApis();
+        if (!EnsureEconomyApi())
+        {
+            return 0m;
+        }
+
         return plugin.economyApi.GetPlayerBalance(player.SteamID, WalletKind);
     }
 
     public bool AddCredits(IPlayer player, decimal amount)
     {
-        EnsureApis();
+        if (!EnsureEconomyApi())
+        {
+            return false;
+        }
+
         if (!TryToEconomyAmount(amount, out var creditsAmount))
         {
             return false;
@@ -499,7 +543,11 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public bool SubtractCredits(IPlayer player, decimal amount)
     {
-        EnsureApis();
+        if (!EnsureEconomyApi())
+        {
+            return false;
+        }
+
         if (!TryToEconomyAmount(amount, out var creditsAmount))
         {
             return false;
@@ -518,7 +566,11 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public bool HasCredits(IPlayer player, decimal amount)
     {
-        EnsureApis();
+        if (!EnsureEconomyApi())
+        {
+            return false;
+        }
+
         if (!TryToEconomyAmount(amount, out var creditsAmount))
         {
             return false;
@@ -529,7 +581,10 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public ShopTransactionResult PurchaseItem(IPlayer player, string itemId)
     {
-        EnsureApis();
+        if (!EnsureCookiesApi() || !EnsureEconomyApi())
+        {
+            return Fail(ShopTransactionStatus.InternalError, "Shop dependencies are not injected.", player);
+        }
 
         if (!TryGetItem(itemId, out var item))
         {
@@ -549,7 +604,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Item is disabled.",
                 player,
                 "shop.error.item_disabled",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -560,7 +615,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Team is not allowed.",
                 player,
                 "shop.error.team_not_allowed",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -577,7 +632,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Item already owned.",
                 player,
                 "shop.error.already_owned",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -588,7 +643,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Invalid item price for configured economy.",
                 player,
                 "shop.error.invalid_amount",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -599,7 +654,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Not enough credits.",
                 player,
                 "shop.error.insufficient_credits",
-                item.DisplayName,
+                GetItemDisplayName(player, item),
                 buyAmount
             );
         }
@@ -630,7 +685,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
         var creditsAfter = GetCredits(player);
         RecordLedgerEntry(player, "purchase", buyAmount, creditsAfter, item);
-        plugin.SendLocalizedChat(player, "shop.purchase.success", item.DisplayName, buyAmount, creditsAfter);
+        plugin.SendLocalizedChat(player, "shop.purchase.success", GetItemDisplayName(player, item), buyAmount, creditsAfter);
 
         return new ShopTransactionResult(
             Status: ShopTransactionStatus.Success,
@@ -657,13 +712,13 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
         if (!item.Enabled)
         {
-            plugin.SendLocalizedChat(player, "shop.error.item_disabled", item.DisplayName);
+            plugin.SendLocalizedChat(player, "shop.error.item_disabled", GetItemDisplayName(player, item));
             return false;
         }
 
         if (!IsTeamAllowed(player, item.Team))
         {
-            plugin.SendLocalizedChat(player, "shop.error.team_not_allowed", item.DisplayName);
+            plugin.SendLocalizedChat(player, "shop.error.team_not_allowed", GetItemDisplayName(player, item));
             return false;
         }
 
@@ -681,7 +736,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
         var handlers = OnItemPreview;
         if (handlers is null)
         {
-            plugin.SendLocalizedChat(player, "shop.preview.unavailable", item.DisplayName);
+            plugin.SendLocalizedChat(player, "shop.preview.unavailable", GetItemDisplayName(player, item));
             return false;
         }
 
@@ -701,7 +756,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
         if (!invoked)
         {
-            plugin.SendLocalizedChat(player, "shop.preview.unavailable", item.DisplayName);
+            plugin.SendLocalizedChat(player, "shop.preview.unavailable", GetItemDisplayName(player, item));
             return false;
         }
 
@@ -760,7 +815,10 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public ShopTransactionResult SellItem(IPlayer player, string itemId)
     {
-        EnsureApis();
+        if (!EnsureCookiesApi() || !EnsureEconomyApi())
+        {
+            return Fail(ShopTransactionStatus.InternalError, "Shop dependencies are not injected.", player);
+        }
 
         if (!TryGetItem(itemId, out var item))
         {
@@ -790,7 +848,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Item cannot be sold.",
                 player,
                 "shop.error.not_sellable",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -801,7 +859,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Item cannot be sold.",
                 player,
                 "shop.error.not_sellable",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -817,7 +875,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Item is not owned.",
                 player,
                 "shop.error.not_owned",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -829,7 +887,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
                 "Invalid sell amount for configured economy.",
                 player,
                 "shop.error.invalid_amount",
-                item.DisplayName
+                GetItemDisplayName(player, item)
             );
         }
 
@@ -849,7 +907,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
         var creditsAfter = GetCredits(player);
         RecordLedgerEntry(player, "sell", sellAmount, creditsAfter, item);
-        plugin.SendLocalizedChat(player, "shop.sell.success", item.DisplayName, sellAmount, creditsAfter);
+        plugin.SendLocalizedChat(player, "shop.sell.success", GetItemDisplayName(player, item), sellAmount, creditsAfter);
 
         return new ShopTransactionResult(
             Status: ShopTransactionStatus.Success,
@@ -862,7 +920,10 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public bool IsItemEnabled(IPlayer player, string itemId)
     {
-        EnsureApis();
+        if (!EnsureCookiesApi())
+        {
+            return false;
+        }
 
         if (!TryGetItem(itemId, out var item))
         {
@@ -880,7 +941,10 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public bool IsItemOwned(IPlayer player, string itemId)
     {
-        EnsureApis();
+        if (!EnsureCookiesApi())
+        {
+            return false;
+        }
 
         if (!TryGetItem(itemId, out var item))
         {
@@ -929,7 +993,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
             OnItemExpired?.Invoke(player, item);
             if (notifyExpiration)
             {
-                plugin.SendLocalizedChat(player, "shop.item.expired", item.DisplayName);
+                plugin.SendLocalizedChat(player, "shop.item.expired", GetItemDisplayName(player, item));
             }
 
             return false;
@@ -940,7 +1004,10 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public bool SetItemEnabled(IPlayer player, string itemId, bool enabled)
     {
-        EnsureApis();
+        if (!EnsureCookiesApi())
+        {
+            return false;
+        }
 
         if (!TryGetItem(itemId, out var item))
         {
@@ -985,7 +1052,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
         plugin.SendLocalizedChat(
             player,
             enabled ? "shop.item.equipped" : "shop.item.unequipped",
-            item.DisplayName
+            GetItemDisplayName(player, item)
         );
         OnItemToggled?.Invoke(player, item, enabled);
         return true;
@@ -993,7 +1060,10 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
 
     public long? GetItemExpireAt(IPlayer player, string itemId)
     {
-        EnsureApis();
+        if (!EnsureCookiesApi())
+        {
+            return null;
+        }
 
         if (!TryGetItem(itemId, out var item))
         {
@@ -1052,7 +1122,7 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
             Amount: amount,
             BalanceAfter: balanceAfter,
             ItemId: item?.Id,
-            ItemDisplayName: item?.DisplayName
+            ItemDisplayName: item is null ? null : GetItemDisplayName(null, item)
         );
 
         try
@@ -1373,14 +1443,46 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
         }
     }
 
-    private void EnsureApis()
+    private bool EnsureCookiesApi()
     {
         if (plugin.playerCookies is null)
+        {
+            if (!missingCookiesWarningLogged)
+            {
+                missingCookiesWarningLogged = true;
+                plugin.LogWarning("ShopCore API call requires Cookies.Player.* but the interface is not injected.");
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool EnsureEconomyApi()
+    {
+        if (plugin.economyApi is null)
+        {
+            if (!missingEconomyWarningLogged)
+            {
+                missingEconomyWarningLogged = true;
+                plugin.LogWarning("ShopCore API call requires Economy.API.* but the interface is not injected.");
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private void EnsureApis()
+    {
+        if (!EnsureCookiesApi())
         {
             throw new InvalidOperationException("Cookies.Player.V1 is not injected.");
         }
 
-        if (plugin.economyApi is null)
+        if (!EnsureEconomyApi())
         {
             throw new InvalidOperationException("Economy.API.v1 is not injected.");
         }
@@ -1695,4 +1797,3 @@ internal sealed class ShopCoreApiV2 : IShopCoreApiV2
         }
     }
 }
-

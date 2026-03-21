@@ -115,7 +115,8 @@ public class Shop_DecoyTeleport : BasePlugin
             IsEquipable: false,
             Duration: null,
             Enabled: Config.Decoy.Enabled,
-            AllowPreview: false
+            AllowPreview: false,
+            DisplayNameResolver: player => player is null ? Core.Localizer["item.name"] : Core.Translation.GetPlayerLocalizer(player)["item.name"]
         ));
 
         if (!itemRegistered)

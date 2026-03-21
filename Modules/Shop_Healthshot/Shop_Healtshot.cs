@@ -226,7 +226,7 @@ public class Shop_Healtshot : BasePlugin
 
         if (grantMode == HealthshotGrantMode.OnPurchase)
         {
-            SendPreviewMessage(player, "preview.instant", item.DisplayName);
+            SendPreviewMessage(player, "preview.instant", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName);
             return;
         }
 
@@ -234,7 +234,7 @@ public class Shop_Healtshot : BasePlugin
             ? FormatDuration((int)item.Duration.Value.TotalSeconds)
             : Core.Localizer["shop.menu.item.duration.permanent"];
 
-        SendPreviewMessage(player, "preview.roundstart", item.DisplayName, durationText);
+        SendPreviewMessage(player, "preview.roundstart", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName, durationText);
     }
 
     private void GiveRoundStartHealthshotsToAllPlayers()
@@ -366,17 +366,19 @@ public class Shop_Healtshot : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(itemTemplate, player)
         );
         return true;
     }
 
-    private string ResolveDisplayName(HealthshotItemTemplate itemTemplate)
+    private string ResolveDisplayName(HealthshotItemTemplate itemTemplate, IPlayer? player = null)
     {
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
-            var localized = Core.Localizer[key];
+            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
+            var localized = localizer[key];
             if (!string.Equals(localized, key, StringComparison.Ordinal))
             {
                 return localized;

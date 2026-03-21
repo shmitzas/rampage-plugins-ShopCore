@@ -96,7 +96,7 @@ public partial class ShopCore
     {
         var builder = CreateBaseMenuBuilder(player, "shop.menu.buy.title", parent);
         var items = shopApi.GetItems()
-            .Where(item => item.Enabled)
+            .Where(item => shopApi.IsItemVisibleToPlayer(player, item))
             .ToArray();
 
         var grouped = items
@@ -131,7 +131,7 @@ public partial class ShopCore
     private IMenuAPI BuildBuySubcategoryOrItemsMenu(IPlayer player, string category, IMenuAPI? parent = null)
     {
         var items = shopApi.GetItems()
-            .Where(item => item.Enabled && CategoryMatches(item, category, null))
+            .Where(item => shopApi.IsItemVisibleToPlayer(player, item) && CategoryMatches(item, category, null))
             .ToArray();
 
         if (items.Length == 0)
@@ -180,10 +180,10 @@ public partial class ShopCore
         var categoryPathText = BuildLocalizedCategoryPathText(player, category, subcategory);
         var builder = CreateBaseMenuBuilder(player, "shop.menu.buy.category.title", parent, categoryPathText);
         var items = shopApi.GetItems()
-            .Where(item => item.Enabled)
+            .Where(item => shopApi.IsItemVisibleToPlayer(player, item))
             .Where(item => CategoryMatches(item, category, subcategory))
             .OrderBy(item => item.Price)
-            .ThenBy(item => item.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => shopApi.GetItemDisplayName(player, item), StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (items.Length == 0)
@@ -215,7 +215,7 @@ public partial class ShopCore
         string? subcategory = null,
         IMenuAPI? parent = null)
     {
-        var builder = CreateBaseMenuBuilder(player, "shop.menu.buy.item.title", parent, item.DisplayName);
+        var builder = CreateBaseMenuBuilder(player, "shop.menu.buy.item.title", parent, shopApi.GetItemDisplayName(player, item));
 
         var infoOption = new TextMenuOption(BuildBuyItemText(player, item))
         {
@@ -349,7 +349,7 @@ public partial class ShopCore
         var snapshot = inventorySnapshot ?? BuildInventorySnapshot(player);
         var items = snapshot
             .Where(entry => CategoryMatches(entry.Item, category, subcategory))
-            .OrderBy(entry => entry.Item.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(entry => shopApi.GetItemDisplayName(player, entry.Item), StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         if (items.Length == 0)
@@ -386,7 +386,7 @@ public partial class ShopCore
         string? subcategory = null,
         IMenuAPI? parent = null)
     {
-        var builder = CreateBaseMenuBuilder(player, "shop.menu.inventory.item.title", parent, item.DisplayName);
+        var builder = CreateBaseMenuBuilder(player, "shop.menu.inventory.item.title", parent, shopApi.GetItemDisplayName(player, item));
         var isEnabled = item.IsEquipable && shopApi.IsItemEnabled(player, item.Id);
         var expireAt = item.Duration.HasValue ? shopApi.GetItemExpireAt(player, item.Id) : null;
 
@@ -472,7 +472,7 @@ public partial class ShopCore
 
     private string BuildBuyItemText(IPlayer player, ShopItemDefinition item)
     {
-        return Localize(player, "shop.menu.buy.item.entry", item.DisplayName, FormatCredits(item.Price));
+        return Localize(player, "shop.menu.buy.item.entry", shopApi.GetItemDisplayName(player, item), FormatCredits(item.Price));
     }
 
     private string BuildBuyItemComment(IPlayer player, ShopItemDefinition item)
@@ -482,7 +482,7 @@ public partial class ShopCore
 
     private string BuildInventoryItemText(IPlayer player, ShopItemDefinition item)
     {
-        return Localize(player, "shop.menu.inventory.item.entry", item.DisplayName);
+        return Localize(player, "shop.menu.inventory.item.entry", shopApi.GetItemDisplayName(player, item));
     }
 
     private string BuildInventoryItemComment(IPlayer player, ShopItemDefinition item)

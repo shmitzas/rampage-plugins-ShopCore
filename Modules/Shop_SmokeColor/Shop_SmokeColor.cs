@@ -318,7 +318,7 @@ public class Shop_SmokeColor : BasePlugin
 
             var loc = Core.Translation.GetPlayerLocalizer(player);
             player.SendChat(
-                $"{GetPrefix(player)} {loc["preview.started", item.DisplayName, (int)PreviewDurationSeconds]}"
+                $"{GetPrefix(player)} {loc["preview.started", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName, (int)PreviewDurationSeconds]}"
             );
         });
     }
@@ -437,7 +437,8 @@ public class Shop_SmokeColor : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(Core, itemTemplate, player)
         );
         return true;
     }
@@ -603,9 +604,10 @@ public class Shop_SmokeColor : BasePlugin
             ]
         };
     }
-    private static string ResolveDisplayName(ISwiftlyCore Core, SmokeColorItemTemplate item)
+    private static string ResolveDisplayName(ISwiftlyCore Core, SmokeColorItemTemplate item, IPlayer? player = null)
     {
         var key = item.DisplayNameKey?.Trim();
+        var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
 
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -614,10 +616,10 @@ public class Shop_SmokeColor : BasePlugin
 
         if (item.Type.Equals("Permanent", StringComparison.OrdinalIgnoreCase))
         {
-            return Core.Localizer[key, item.ColorName];
+            return localizer[key, item.ColorName];
         }
 
-        return Core.Localizer[key, item.ColorName, FormatDuration(item.DurationSeconds)];
+        return localizer[key, item.ColorName, FormatDuration(item.DurationSeconds)];
     }
     private static string FormatDuration(int totalSeconds)
     {

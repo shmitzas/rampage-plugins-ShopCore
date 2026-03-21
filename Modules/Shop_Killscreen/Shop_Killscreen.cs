@@ -229,7 +229,7 @@ public class Shop_Killscreen : BasePlugin
             var currentTime = Core.Engine.GlobalVars.CurrentTime;
             pawn.HealthShotBoostExpirationTime.Value = currentTime + 1.0f;
             pawn.HealthShotBoostExpirationTimeUpdated();
-            player.SendChat($"{GetPrefix(player)} {Core.Translation.GetPlayerLocalizer(player)["preview.started", item.DisplayName]}");
+            player.SendChat($"{GetPrefix(player)} {Core.Translation.GetPlayerLocalizer(player)["preview.started", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName]}");
         });
     }
 
@@ -320,7 +320,8 @@ public class Shop_Killscreen : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(Core, itemTemplate, player)
         );
         return true;
     }
@@ -366,9 +367,10 @@ public class Shop_Killscreen : BasePlugin
             ]
         };
     }
-    private static string ResolveDisplayName(ISwiftlyCore Core, KillscreenItemTemplate item)
+    private static string ResolveDisplayName(ISwiftlyCore Core, KillscreenItemTemplate item, IPlayer? player = null)
     {
         var key = item.DisplayNameKey?.Trim();
+        var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
 
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -377,10 +379,10 @@ public class Shop_Killscreen : BasePlugin
 
         if (item.Type.Equals("Permanent", StringComparison.OrdinalIgnoreCase))
         {
-            return Core.Localizer[key];
+            return localizer[key];
         }
 
-        return Core.Localizer[key, FormatDuration(item.DurationSeconds)];
+        return localizer[key, FormatDuration(item.DurationSeconds)];
     }
     private static string FormatDuration(int totalSeconds)
     {

@@ -218,7 +218,7 @@ public class Shop_HitSounds : BasePlugin
 
         var player = context.Player;
         var loc = Core.Translation.GetPlayerLocalizer(player);
-        context.Block($"{GetPrefix(player)} {loc["error.permission", context.Item.DisplayName, runtime.RequiredPermission]}");
+        context.Block($"{GetPrefix(player)} {loc["error.permission", shopApi?.GetItemDisplayName(player, context.Item) ?? context.Item.DisplayName, runtime.RequiredPermission]}");
     }
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
@@ -290,7 +290,7 @@ public class Shop_HitSounds : BasePlugin
         }
 
         PlayHitSound(player, runtime.SoundPath);
-        SendPreviewMessage(player, "preview.played", item.DisplayName);
+        SendPreviewMessage(player, "preview.played", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName);
     }
 
     private bool TryGetEnabledSound(IPlayer player, out string soundPath)
@@ -463,7 +463,8 @@ public class Shop_HitSounds : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(itemTemplate, player)
         );
 
         runtime = new HitSoundItemRuntime(
@@ -475,14 +476,15 @@ public class Shop_HitSounds : BasePlugin
         return true;
     }
 
-    private string ResolveDisplayName(HitSoundItemTemplate itemTemplate)
+    private string ResolveDisplayName(HitSoundItemTemplate itemTemplate, IPlayer? player = null)
     {
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
+            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase)
-                ? Core.Localizer[key]
-                : Core.Localizer[key, FormatDuration(itemTemplate.DurationSeconds)];
+                ? localizer[key]
+                : localizer[key, FormatDuration(itemTemplate.DurationSeconds)];
             if (!string.Equals(localized, key, StringComparison.Ordinal))
             {
                 return localized;

@@ -300,7 +300,7 @@ public class Shop_PlayerColor : BasePlugin
 
         var player = context.Player;
         var loc = Core.Translation.GetPlayerLocalizer(player);
-        context.Block($"{GetPrefix(player)} {loc["error.permission", context.Item.DisplayName, runtime.RequiredPermission]}");
+        context.Block($"{GetPrefix(player)} {loc["error.permission", shopApi?.GetItemDisplayName(player, context.Item) ?? context.Item.DisplayName, runtime.RequiredPermission]}");
     }
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
@@ -369,7 +369,7 @@ public class Shop_PlayerColor : BasePlugin
         );
 
         RefreshPlayerColor(player);
-        SendPreviewMessage(player, "preview.started", item.DisplayName, (int)PreviewDurationSeconds);
+        SendPreviewMessage(player, "preview.started", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName, (int)PreviewDurationSeconds);
     }
 
     private void RefreshPlayerColor(IPlayer player)
@@ -629,7 +629,8 @@ public class Shop_PlayerColor : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(itemTemplate, isRainbow, player)
         );
 
         runtime = new PlayerColorItemRuntime(
@@ -643,23 +644,24 @@ public class Shop_PlayerColor : BasePlugin
         return true;
     }
 
-    private string ResolveDisplayName(PlayerColorItemTemplate itemTemplate, bool isRainbow)
+    private string ResolveDisplayName(PlayerColorItemTemplate itemTemplate, bool isRainbow, IPlayer? player = null)
     {
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
             string localized;
+            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
 
             if (itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase))
             {
-                localized = Core.Localizer[key, itemTemplate.Color];
+                localized = localizer[key, itemTemplate.Color];
             }
             else
             {
                 var duration = FormatDuration(itemTemplate.DurationSeconds);
                 localized = isRainbow
-                    ? Core.Localizer[key, duration]
-                    : Core.Localizer[key, itemTemplate.Color, duration];
+                    ? localizer[key, duration]
+                    : localizer[key, itemTemplate.Color, duration];
             }
 
             if (!string.Equals(localized, key, StringComparison.Ordinal))

@@ -250,7 +250,7 @@ public class Shop_Tracers : BasePlugin
 
         var player = context.Player;
         var loc = Core.Translation.GetPlayerLocalizer(player);
-        context.Block($"{GetPrefix(player)} {loc["error.permission", context.Item.DisplayName, runtime.RequiredPermission]}");
+        context.Block($"{GetPrefix(player)} {loc["error.permission", shopApi?.GetItemDisplayName(player, context.Item) ?? context.Item.DisplayName, runtime.RequiredPermission]}");
     }
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
@@ -310,7 +310,7 @@ public class Shop_Tracers : BasePlugin
 
             var loc = Core.Translation.GetPlayerLocalizer(player);
             player.SendChat(
-                $"{GetPrefix(player)} {loc["preview.started", item.DisplayName, (int)PreviewDurationSeconds]}"
+                $"{GetPrefix(player)} {loc["preview.started", shopApi?.GetItemDisplayName(player, item) ?? item.DisplayName, (int)PreviewDurationSeconds]}"
             );
         });
     }
@@ -584,7 +584,8 @@ public class Shop_Tracers : BasePlugin
             Type: itemType,
             Team: team,
             Enabled: itemTemplate.Enabled,
-            CanBeSold: itemTemplate.CanBeSold
+            CanBeSold: itemTemplate.CanBeSold,
+            DisplayNameResolver: player => ResolveDisplayName(itemTemplate, player)
         );
 
         runtime = new TracerItemRuntime(
@@ -601,7 +602,7 @@ public class Shop_Tracers : BasePlugin
         return true;
     }
 
-    private string ResolveDisplayName(TracerItemTemplate itemTemplate)
+    private string ResolveDisplayName(TracerItemTemplate itemTemplate, IPlayer? player = null)
     {
         var colorName = string.IsNullOrWhiteSpace(itemTemplate.ColorDisplayName)
             ? itemTemplate.Color
@@ -610,9 +611,10 @@ public class Shop_Tracers : BasePlugin
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
+            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase)
-                ? Core.Localizer[key, colorName]
-                : Core.Localizer[key, colorName, FormatDuration(itemTemplate.DurationSeconds)];
+                ? localizer[key, colorName]
+                : localizer[key, colorName, FormatDuration(itemTemplate.DurationSeconds)];
 
             if (!string.Equals(localized, key, StringComparison.Ordinal))
             {
