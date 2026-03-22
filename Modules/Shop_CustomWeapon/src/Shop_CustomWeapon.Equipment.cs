@@ -414,6 +414,27 @@ public sealed partial class Shop_CustomWeapon
             return;
         }
 
+        if (WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon))
+        {
+            Core.Scheduler.NextWorldUpdate(() =>
+            {
+                if (!WeaponHelpers.IsPlayerAlive(player))
+                {
+                    return;
+                }
+
+                var weapon = WeaponHelpers.FindWeapon(player, runtime.BaseWeapon);
+                if (weapon is null || !weapon.IsValid)
+                {
+                    return;
+                }
+
+                ApplyAppearance(weapon, runtime);
+            });
+
+            return;
+        }
+
         ReplaceWeaponForPlayer(player, runtime, forceSelectWeapon: true, sendFailureMessage: false);
     }
 
@@ -443,7 +464,24 @@ public sealed partial class Shop_CustomWeapon
                 var weapon = WeaponHelpers.FindWeapon(player, runtime.BaseWeapon);
                 if (weapon is not null && weapon.IsValid)
                 {
+                    if (WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon))
+                    {
+                        ApplyAppearance(weapon, runtime);
+
+                        if (selectWeapon)
+                        {
+                            weaponServices.SelectWeapon(weapon);
+                        }
+
+                        return;
+                    }
+
                     ReplaceWeaponForPlayer(player, runtime, forceSelectWeapon: selectWeapon, sendFailureMessage: sendFailureMessage);
+                    return;
+                }
+
+                if (WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon))
+                {
                     return;
                 }
 
@@ -565,6 +603,11 @@ public sealed partial class Shop_CustomWeapon
     private void RebuildBaseWeaponForPlayer(IPlayer player, CustomWeaponRuntime runtime)
     {
         if (!WeaponHelpers.IsPlayerAlive(player))
+        {
+            return;
+        }
+
+        if (WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon))
         {
             return;
         }

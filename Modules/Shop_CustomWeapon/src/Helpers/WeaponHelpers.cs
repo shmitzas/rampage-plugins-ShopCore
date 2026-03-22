@@ -95,4 +95,14 @@ internal static class WeaponHelpers
         return baseWeapon.StartsWith("weapon_knife", StringComparison.OrdinalIgnoreCase)
             || baseWeapon.Equals("weapon_bayonet", StringComparison.OrdinalIgnoreCase);
     }
+
+    public static bool IsThrowableWeapon(string baseWeapon)
+    {
+        return baseWeapon.Equals("weapon_hegrenade", StringComparison.OrdinalIgnoreCase)
+            || baseWeapon.Equals("weapon_flashbang", StringComparison.OrdinalIgnoreCase)
+            || baseWeapon.Equals("weapon_smokegrenade", StringComparison.OrdinalIgnoreCase)
+            || baseWeapon.Equals("weapon_molotov", StringComparison.OrdinalIgnoreCase)
+            || baseWeapon.Equals("weapon_incgrenade", StringComparison.OrdinalIgnoreCase)
+            || baseWeapon.Equals("weapon_decoy", StringComparison.OrdinalIgnoreCase);
+    }
 }

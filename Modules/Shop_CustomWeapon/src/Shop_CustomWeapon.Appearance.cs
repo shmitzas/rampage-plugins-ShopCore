@@ -8,10 +8,11 @@ public sealed partial class Shop_CustomWeapon
     private void ApplyAppearance(CBasePlayerWeapon weapon, CustomWeaponRuntime runtime)
     {
         var isKnife = WeaponHelpers.IsKnifeWeapon(runtime.BaseWeapon);
+        var isThrowable = WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon);
         var hasCustomModel = !string.IsNullOrWhiteSpace(runtime.PrecacheModel);
 
         var vdata = ResolveVdata(runtime);
-        if (!string.IsNullOrWhiteSpace(vdata))
+        if (!isThrowable && !string.IsNullOrWhiteSpace(vdata))
         {
             var currentSubclass = weapon.Entity?.DesignerName ?? (isKnife ? "weapon_knife" : runtime.BaseWeapon);
             SetSubclass(weapon, currentSubclass, vdata);
@@ -135,7 +136,7 @@ public sealed partial class Shop_CustomWeapon
             ResetWeaponModel(weapon);
         }
 
-        if (!string.IsNullOrWhiteSpace(ResolveVdata(runtime)))
+        if (!WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon) && !string.IsNullOrWhiteSpace(ResolveVdata(runtime)))
         {
             ResetSubclass(weapon);
         }
