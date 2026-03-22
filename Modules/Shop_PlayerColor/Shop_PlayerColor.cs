@@ -9,6 +9,7 @@ using SwiftlyS2.Shared.Natives;
 using SwiftlyS2.Shared.Players;
 using SwiftlyS2.Shared.Plugins;
 using SwiftlyS2.Shared.SchemaDefinitions;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ShopCore;
 
@@ -32,6 +33,7 @@ public class Shop_PlayerColor : BasePlugin
 
     private readonly HashSet<string> registeredItemIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> registeredItemOrder = new();
+    private readonly List<int> rainbowPlayersToRemove = new();
     private readonly Dictionary<string, PlayerColorItemRuntime> itemRuntimeById = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, float> nextRainbowUpdateAtByPlayerId = new();
     private readonly Dictionary<int, PlayerColorPreviewState> previewRuntimeByPlayerId = new();
@@ -117,7 +119,7 @@ public class Shop_PlayerColor : BasePlugin
     public HookResult OnPlayerSpawn(EventPlayerSpawn e)
     {
         var player = Core.PlayerManager.GetPlayer(e.UserId);
-        if (player is null || !player.IsValid || player.IsFakeClient)
+        if (!IsRealPlayer(player))
         {
             return HookResult.Continue;
         }
@@ -130,7 +132,7 @@ public class Shop_PlayerColor : BasePlugin
     public HookResult OnPlayerDeath(EventPlayerDeath e)
     {
         var player = Core.PlayerManager.GetPlayer(e.UserId);
-        if (player is null || !player.IsValid || player.IsFakeClient)
+        if (!IsRealPlayer(player))
         {
             return HookResult.Continue;
         }
@@ -160,7 +162,9 @@ public class Shop_PlayerColor : BasePlugin
 
         var currentTime = Core.Engine.GlobalVars.CurrentTime;
 
-        foreach (var kvp in nextRainbowUpdateAtByPlayerId.ToList())
+        rainbowPlayersToRemove.Clear();
+
+        foreach (var kvp in nextRainbowUpdateAtByPlayerId)
         {
             var playerId = kvp.Key;
             var nextUpdateAt = kvp.Value;
@@ -171,27 +175,32 @@ public class Shop_PlayerColor : BasePlugin
             }
 
             var player = Core.PlayerManager.GetPlayer(playerId);
-            if (player is null || !player.IsValid || player.IsFakeClient)
+            if (!IsRealPlayer(player))
             {
-                nextRainbowUpdateAtByPlayerId.Remove(playerId);
+                rainbowPlayersToRemove.Add(playerId);
                 continue;
             }
 
             if (!TryGetActiveRuntime(player, out var runtime))
             {
-                nextRainbowUpdateAtByPlayerId.Remove(playerId);
+                rainbowPlayersToRemove.Add(playerId);
                 continue;
             }
 
             if (!runtime.IsRainbow)
             {
-                nextRainbowUpdateAtByPlayerId.Remove(playerId);
+                rainbowPlayersToRemove.Add(playerId);
                 continue;
             }
 
             var rainbowColor = NextRainbowColor();
             ApplyColor(player, rainbowColor);
             nextRainbowUpdateAtByPlayerId[playerId] = currentTime + runtime.RainbowUpdateIntervalSeconds;
+        }
+
+        foreach (var playerId in rainbowPlayersToRemove)
+        {
+            nextRainbowUpdateAtByPlayerId.Remove(playerId);
         }
     }
 
@@ -390,7 +399,7 @@ public class Shop_PlayerColor : BasePlugin
 
     private void RefreshPlayerColor(IPlayer player)
     {
-        if (shopApi is null || player is null || !player.IsValid || player.IsFakeClient)
+        if (shopApi is null || !player.IsValid || player.IsFakeClient)
         {
             return;
         }
@@ -533,7 +542,7 @@ public class Shop_PlayerColor : BasePlugin
     {
         pawn = null!;
 
-        if (player is null || !player.IsValid)
+        if (!player.IsValid)
         {
             return false;
         }
@@ -546,6 +555,11 @@ public class Shop_PlayerColor : BasePlugin
 
         pawn = playerPawn;
         return pawn.LifeState == (int)LifeState_t.LIFE_ALIVE;
+    }
+
+    private static bool IsRealPlayer([NotNullWhen(true)] IPlayer? player)
+    {
+        return player is not null && player.IsValid && !player.IsFakeClient;
     }
 
     private Color NextRainbowColor()

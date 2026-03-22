@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using ShopCore.Contract;
+using SwiftlyS2.Shared.Events;
 using SwiftlyS2.Shared.Misc;
 using SwiftlyS2.Shared.Natives;
 using SwiftlyS2.Shared.Players;
@@ -13,6 +14,127 @@ public sealed partial class Shop_CustomWeapon
 {
     private const float PreviewDurationSeconds = 8f;
     private const float PreviewDistance = 75f;
+    private const int KnifeApplyRetryAttempts = 20;
+    private const float KnifeApplyRetryDelaySeconds = 0.1f;
+
+    private void OnEntityCreated(IOnEntityCreatedEvent @event)
+    {
+        if (!handlersRegistered || shopApi is null)
+        {
+            return;
+        }
+
+        var entity = @event.Entity;
+        if (entity is null || !entity.IsValid)
+        {
+            return;
+        }
+
+        var designerName = entity.Entity?.DesignerName ?? string.Empty;
+        if (!WeaponHelpers.IsKnifeWeapon(designerName))
+        {
+            return;
+        }
+
+        Core.Scheduler.NextWorldUpdate(() =>
+        {
+            try
+            {
+                if (entity is null || !entity.IsValid)
+                {
+                    return;
+                }
+
+                var weapon = entity.As<CBasePlayerWeapon>();
+                if (weapon is null || !weapon.IsValid)
+                {
+                    return;
+                }
+
+                var ownerHandle = weapon.OwnerEntity;
+                if (!ownerHandle.IsValid)
+                {
+                    return;
+                }
+
+                var ownerEntity = ownerHandle.Value;
+                if (ownerEntity is null || !ownerEntity.IsValid)
+                {
+                    return;
+                }
+
+                var pawn = ownerEntity.As<CCSPlayerPawn>();
+                if (pawn is null || !pawn.IsValid)
+                {
+                    return;
+                }
+
+                var controller = pawn.OriginalController;
+                if (!controller.IsValid)
+                {
+                    return;
+                }
+
+                var controllerValue = controller.Value;
+                if (controllerValue is null || !controllerValue.IsValid)
+                {
+                    return;
+                }
+
+                var player = Core.PlayerManager.GetPlayer((int)(controllerValue.Index - 1));
+                if (player is null || !player.IsValid || player.IsFakeClient)
+                {
+                    return;
+                }
+
+                CustomWeaponRuntime? matchedRuntime = null;
+                var appliedGroups = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var itemId in registeredItemIds)
+                {
+                    if (!shopApi.IsItemEnabled(player, itemId))
+                    {
+                        continue;
+                    }
+
+                    if (!TryGetRuntime(itemId, out var runtime))
+                    {
+                        continue;
+                    }
+
+                    if (!WeaponHelpers.IsKnifeWeapon(runtime.BaseWeapon))
+                    {
+                        continue;
+                    }
+
+                    var equipGroup = GetExclusiveEquipGroup(runtime);
+                    if (!appliedGroups.Add(equipGroup))
+                    {
+                        continue;
+                    }
+
+                    matchedRuntime = runtime;
+                    break;
+                }
+
+                if (matchedRuntime is null)
+                {
+                    return;
+                }
+
+                if (WeaponHelpers.KnifeDefinitionIndexByClassname.TryGetValue(matchedRuntime.BaseWeapon, out var defIndex))
+                {
+                    weapon.AttributeManager.Item.ItemDefinitionIndex = defIndex;
+                }
+
+                ApplyAppearance(weapon, matchedRuntime);
+            }
+            catch (Exception ex)
+            {
+                Core.Logger.LogWarning(ex, "[Shop_CustomWeapon] OnEntityCreated knife skin failed.");
+            }
+        });
+    }
 
     private void OnItemPurchased(IPlayer player, ShopItemDefinition item)
     {
@@ -699,8 +821,17 @@ public sealed partial class Shop_CustomWeapon
 
     private void ApplyKnifeSkin(IPlayer player, CustomWeaponRuntime runtime)
     {
+        ApplyKnifeSkin(player, runtime, KnifeApplyRetryAttempts);
+    }
+
+    private void ApplyKnifeSkin(IPlayer player, CustomWeaponRuntime runtime, int remainingAttempts)
+    {
         if (!WeaponHelpers.IsPlayerAlive(player))
         {
+            if (remainingAttempts > 0)
+            {
+                _ = Core.Scheduler.DelayBySeconds(KnifeApplyRetryDelaySeconds, () => ApplyKnifeSkin(player, runtime, remainingAttempts - 1));
+            }
             return;
         }
 
@@ -713,50 +844,75 @@ public sealed partial class Shop_CustomWeapon
                     return;
                 }
 
-                var pawn = player.PlayerPawn;
-                if (pawn is null || !pawn.IsValid)
-                {
-                    return;
-                }
+                var knife = WeaponHelpers.FindPlayerKnife(player);
 
-                var weaponServices = pawn.WeaponServices;
-                var itemServices = pawn.ItemServices;
-                if (weaponServices is null || !weaponServices.IsValid || itemServices is null || !itemServices.IsValid)
-                {
-                    return;
-                }
-
-                var existingKnife = WeaponHelpers.FindPlayerKnife(player);
-                if (existingKnife is not null && existingKnife.IsValid &&
-                    WeaponHelpers.KnifeDefinitionIndexByClassname.TryGetValue(runtime.BaseWeapon, out var expectedDefIndex) &&
-                    existingKnife.AttributeManager.Item.ItemDefinitionIndex == expectedDefIndex)
-                {
-                    ApplyAppearance(existingKnife, runtime);
-                    return;
-                }
-
-                if (existingKnife is not null && existingKnife.IsValid)
-                {
-                    weaponServices.RemoveWeapon(existingKnife);
-                }
-
-                var knife = itemServices.GiveItem<CBasePlayerWeapon>("weapon_knife_t");
                 if (knife is null || !knife.IsValid)
                 {
-                    Core.Logger.LogWarning("[Shop_CustomWeapon] Failed to give knife to player {PlayerId}.", player.PlayerID);
+                    var pawn = player.PlayerPawn;
+                    var weaponServices = pawn?.WeaponServices;
+                    if (weaponServices is null || !weaponServices.IsValid)
+                    {
+                        if (remainingAttempts > 0)
+                            _ = Core.Scheduler.DelayBySeconds(KnifeApplyRetryDelaySeconds, () => ApplyKnifeSkin(player, runtime, remainingAttempts - 1));
+                        return;
+                    }
+
+                    var defaultKnifeClass = player.Controller?.TeamNum == (int)Team.T ? "weapon_knife_t" : "weapon_knife";
+                    weaponServices.SelectWeaponByDesignerName(defaultKnifeClass);
+
+                    Core.Scheduler.NextWorldUpdate(() =>
+                    {
+                        try
+                        {
+                            if (!WeaponHelpers.IsPlayerAlive(player)) return;
+
+                            var ws2 = player.PlayerPawn?.WeaponServices;
+                            if (ws2 is null || !ws2.IsValid)
+                            {
+                                if (remainingAttempts > 0)
+                                    _ = Core.Scheduler.DelayBySeconds(KnifeApplyRetryDelaySeconds, () => ApplyKnifeSkin(player, runtime, remainingAttempts - 1));
+                                return;
+                            }
+
+                            var activeHandle = ws2.ActiveWeapon;
+                            var activeKnife = activeHandle.IsValid ? activeHandle.Value : null;
+
+                            if (activeKnife is null || !activeKnife.IsValid)
+                            {
+                                if (remainingAttempts > 0)
+                                    _ = Core.Scheduler.DelayBySeconds(KnifeApplyRetryDelaySeconds, () => ApplyKnifeSkin(player, runtime, remainingAttempts - 1));
+                                return;
+                            }
+
+                            if (WeaponHelpers.KnifeDefinitionIndexByClassname.TryGetValue(runtime.BaseWeapon, out var defIdx))
+                                activeKnife.AttributeManager.Item.ItemDefinitionIndex = defIdx;
+
+                            ApplyAppearance(activeKnife, runtime);
+                        }
+                        catch (Exception ex2)
+                        {
+                            Core.Logger.LogWarning(ex2, "Failed to apply knife skin '{ItemId}' to player {PlayerId}.", runtime.ItemId, player.PlayerID);
+                            if (remainingAttempts > 0)
+                                _ = Core.Scheduler.DelayBySeconds(KnifeApplyRetryDelaySeconds, () => ApplyKnifeSkin(player, runtime, remainingAttempts - 1));
+                        }
+                    });
                     return;
+                }
+
+                if (WeaponHelpers.KnifeDefinitionIndexByClassname.TryGetValue(runtime.BaseWeapon, out var expectedKnifeDefIndex))
+                {
+                    knife.AttributeManager.Item.ItemDefinitionIndex = expectedKnifeDefIndex;
                 }
 
                 ApplyAppearance(knife, runtime);
-
-                if (WeaponHelpers.KnifeDefinitionIndexByClassname.TryGetValue(runtime.BaseWeapon, out var defIndex))
-                {
-                    knife.AttributeManager.Item.ItemDefinitionIndex = defIndex;
-                }
             }
             catch (Exception ex)
             {
                 Core.Logger.LogWarning(ex, "Failed to apply knife skin '{ItemId}' to player {PlayerId}.", runtime.ItemId, player.PlayerID);
+                if (remainingAttempts > 0)
+                {
+                    _ = Core.Scheduler.DelayBySeconds(KnifeApplyRetryDelaySeconds, () => ApplyKnifeSkin(player, runtime, remainingAttempts - 1));
+                }
             }
         });
     }

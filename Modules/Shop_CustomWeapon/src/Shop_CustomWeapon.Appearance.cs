@@ -14,7 +14,7 @@ public sealed partial class Shop_CustomWeapon
         var vdata = ResolveVdata(runtime);
         if (!isThrowable && !string.IsNullOrWhiteSpace(vdata))
         {
-            var currentSubclass = weapon.Entity?.DesignerName ?? (isKnife ? "weapon_knife" : runtime.BaseWeapon);
+            var currentSubclass = weapon.Entity?.DesignerName ?? runtime.BaseWeapon;
             SetSubclass(weapon, currentSubclass, vdata);
         }
 
@@ -136,7 +136,9 @@ public sealed partial class Shop_CustomWeapon
             ResetWeaponModel(weapon);
         }
 
-        if (!WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon) && !string.IsNullOrWhiteSpace(ResolveVdata(runtime)))
+        if (!WeaponHelpers.IsKnifeWeapon(runtime.BaseWeapon)
+            && !WeaponHelpers.IsThrowableWeapon(runtime.BaseWeapon)
+            && !string.IsNullOrWhiteSpace(ResolveVdata(runtime)))
         {
             ResetSubclass(weapon);
         }

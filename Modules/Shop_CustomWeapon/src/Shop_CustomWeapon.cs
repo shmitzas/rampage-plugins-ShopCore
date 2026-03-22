@@ -75,6 +75,8 @@ public sealed partial class Shop_CustomWeapon : BasePlugin
     {
         LoadEarlyPrecacheModels();
         Core.Event.OnPrecacheResource += OnPrecacheResource;
+        Core.Event.OnClientConnected += OnClientConnected;
+        Core.Event.OnEntityCreated += OnEntityCreated;
 
         if (shopApi is not null && !handlersRegistered)
         {
@@ -85,6 +87,8 @@ public sealed partial class Shop_CustomWeapon : BasePlugin
     public override void Unload()
     {
         Core.Event.OnPrecacheResource -= OnPrecacheResource;
+        Core.Event.OnClientConnected -= OnClientConnected;
+        Core.Event.OnEntityCreated -= OnEntityCreated;
         UnregisterItemsAndHandlers();
     }
 
@@ -114,8 +118,28 @@ public sealed partial class Shop_CustomWeapon : BasePlugin
             return HookResult.Continue;
         }
 
-        _ = Core.Scheduler.DelayBySeconds(0.25f, () => ApplyEnabledWeaponsToPlayer(player));
+        _ = Core.Scheduler.DelayBySeconds(0.25f, () => TryApplyEnabledWeaponsWithRetry(player, 8));
         return HookResult.Continue;
+    }
+
+    private void TryApplyEnabledWeaponsWithRetry(IPlayer player, int remainingAttempts)
+    {
+        if (!handlersRegistered || shopApi is null || !player.IsValid || player.IsFakeClient)
+        {
+            return;
+        }
+
+        if (!WeaponHelpers.IsPlayerAlive(player))
+        {
+            if (remainingAttempts > 0)
+            {
+                _ = Core.Scheduler.DelayBySeconds(0.15f, () => TryApplyEnabledWeaponsWithRetry(player, remainingAttempts - 1));
+            }
+
+            return;
+        }
+
+        ApplyEnabledWeaponsToPlayer(player);
     }
 
     [GameEventHandler(HookMode.Post)]
@@ -235,6 +259,30 @@ public sealed partial class Shop_CustomWeapon : BasePlugin
                     player.PlayerID, name, model);
             }
         }
+    }
+
+    private void OnClientConnected(IOnClientConnectedEvent @event)
+    {
+        if (!handlersRegistered || shopApi is null)
+        {
+            return;
+        }
+
+        _ = Core.Scheduler.DelayBySeconds(1.5f, () =>
+        {
+            var player = Core.PlayerManager.GetPlayer(@event.PlayerId);
+            if (player is null || !player.IsValid || player.IsFakeClient)
+            {
+                return;
+            }
+
+            if (!WeaponHelpers.IsPlayerAlive(player))
+            {
+                return;
+            }
+
+            ApplyEnabledWeaponsToPlayer(player);
+        });
     }
 
     private void OnPrecacheResource(IOnPrecacheResourceEvent @event)
