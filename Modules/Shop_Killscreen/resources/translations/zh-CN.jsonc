@@ -1,0 +1,6 @@
+{
+    "shop.prefix": "[gold]★[red] [商店][default]",
+    "module.killscreen.item.permanent.name": "击杀特效 (永久)",
+    "module.killscreen.item.temporary.name": "击杀特效 ({0})",
+    "module.killscreen.preview.started": "已触发 [lightyellow]{0}[default] 的预览。击杀敌人以查看完整效果。"
+}

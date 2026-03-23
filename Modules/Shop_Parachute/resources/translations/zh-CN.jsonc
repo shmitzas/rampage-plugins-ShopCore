@@ -1,0 +1,8 @@
+{
+    "shop.prefix": "[gold]★[red] [商店][default]",
+    "module.parachute.item.basic.name": "基础降落伞 ({0})",
+    "module.parachute.item.premium.name": "高级降落伞 ({0})",
+    "module.parachute.item.permanent.name": "永久降落伞",
+    "module.parachute.error.permission": "你需要 [{1}] 才能购买 {0}。",
+    "module.parachute.preview.started": "预览已激活 [lightyellow]{0}[default]，持续 [lightyellow]{1}[default] 秒。下落时按住 [lightyellow]E[default]。"
+}

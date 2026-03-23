@@ -1,0 +1,7 @@
+{
+    "shop.prefix": "[gold]★[red] [商店][default]",
+    "module.hitsounds.item.bell.name": "铃铛击中音效 ({0})",
+    "module.hitsounds.item.crate.name": "箱子击中音效 ({0})",
+    "module.hitsounds.error.permission": "你需要 [{1}] 才能购买 {0}。",
+    "module.hitsounds.preview.played": "已播放 [lightyellow]{0}[default] 的预览。"
+}

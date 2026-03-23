@@ -1,0 +1,10 @@
+{
+  "shop.prefix": "[gold]★[red] [商店][default]",
+
+  "module.player_color.item.color.name": "{0} 玩家颜色 ({1})",
+  "module.player_color.item.rainbow.name": "彩虹玩家颜色 ({0})",
+  "module.player_color.item.permanent.name": "{0} 玩家颜色 (永久)",
+
+  "module.player_color.error.permission": "你需要权限 [lightred]{1}[default] 才能购买 [lightred]{0}[default]。",
+  "module.player_color.preview.started": "预览已激活 [lightyellow]{0}[default]，持续 [lightyellow]{1}[default] 秒。"
+}

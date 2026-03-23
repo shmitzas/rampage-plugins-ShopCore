@@ -1,0 +1,8 @@
+{
+  "shop.prefix": "[gold]★[red] [商店][default]",
+  "module.bhop.item.fullspeed.name": "连跳 (全速) ({0})",
+  "module.bhop.item.limited350.name": "连跳 (最大350) ({0})",
+  "module.bhop.error.permission": "你需要权限 [lightred]{1}[default] 才能购买 [lightred]{0}[default]。",
+  "module.bhop.preview.started": "预览已激活 [lightyellow]{0}[default]，持续 [lightyellow]{1}[default] 秒。",
+  "module.bhop.preview.cooldown": "请等待 [lightyellow]{0}[default] 秒后再次预览连跳。"
+}

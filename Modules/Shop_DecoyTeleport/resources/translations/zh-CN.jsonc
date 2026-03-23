@@ -1,0 +1,11 @@
+{
+    "shop.prefix": "[gold]★[red] [商店][default]",
+    "decoy_teleport_module.item.name": "诱饵弹传送",
+    "decoy_teleport_module.error.already_have_decoy": "你已经有一个待引爆的诱饵弹传送。",
+    "decoy_teleport_module.error.cooldown": "诱饵弹传送冷却中，还需 [lightyellow]{0}[default] 秒。",
+    "decoy_teleport_module.error.must_be_alive": "你必须存活才能购买诱饵弹传送。",
+    "decoy_teleport_module.error.give_failed": "给予诱饵弹失败。",
+    "decoy_teleport_module.armed": "诱饵弹传送已就绪。投掷你的诱饵弹即可传送。",
+    "decoy_teleport_module.teleported": "已传送。冷却时间：[lightyellow]{0}[default] 秒。",
+    "decoy_teleport_module.disarmed_on_death": "[red]你死亡了[default]。你的诱饵弹传送已被移除。"
+}

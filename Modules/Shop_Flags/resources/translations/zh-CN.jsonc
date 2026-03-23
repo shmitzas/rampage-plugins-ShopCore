@@ -1,0 +1,6 @@
+{
+    "shop.prefix": "[gold]★[red] [商店][default]",
+    "module.flags.item.slot.name": "权限标志 ({0})",
+    "module.flags.error.permission": "你需要 [{1}] 才能购买 {0}。",
+    "module.flags.preview.info": "[lightyellow]{0}[default] 装备时授予权限 [lightyellow]{1}[default]。"
+}

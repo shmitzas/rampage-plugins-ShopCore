@@ -1,0 +1,6 @@
+{
+    "shop.prefix": "[gold]★[red] [商店][default]",
+    "module.smoke_color.item.permanent.name": "{0} 烟雾 (永久)",
+    "module.smoke_color.item.temporary.name": "{0} 烟雾 ({1})",
+    "module.smoke_color.preview.started": "预览已激活 [lightyellow]{0}[default]。你接下来的烟雾弹将使用此颜色，持续 [lightyellow]{1}[default] 秒。"
+}

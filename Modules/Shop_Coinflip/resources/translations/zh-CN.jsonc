@@ -1,0 +1,13 @@
+{
+    "shop.prefix": "[gold]★[red] [商店][default]",
+    "module.coinflip.disabled": "抛硬币功能当前已[lightred]禁用[default]。",
+    "module.coinflip.usage": "用法：[lightyellow]!{0} <金额>[default]",
+    "module.coinflip.invalid_bet": "无效的下注。允许范围：[lightyellow]{0}[default]-[lightyellow]{1}[default]。",
+    "module.coinflip.min_bet": "最低下注为 [lightyellow]{0}[default] 积分。",
+    "module.coinflip.max_bet": "最高下注为 [lightyellow]{0}[default] 积分。",
+    "module.coinflip.cooldown": "请等待 [lightyellow]{0}[default] 秒后再次下注。",
+    "module.coinflip.no_credits": "你没有足够的积分来下注 [lightyellow]{0}[default]。",
+    "module.coinflip.internal_error": "抛硬币因内部错误失败。请重试。",
+    "module.coinflip.won": "你赢了 [lime]+{0}[default] 积分。新余额：[lime]{1}[default]。",
+    "module.coinflip.lost": "你输了 [lightred]{0}[default] 积分。新余额：[lightyellow]{1}[default]。"
+}

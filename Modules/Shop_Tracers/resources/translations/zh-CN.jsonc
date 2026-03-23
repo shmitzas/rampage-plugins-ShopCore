@@ -1,0 +1,9 @@
+{
+  "shop.prefix": "[gold]★[red] [商店][default]",
+
+  "module.tracers.item.temporary.name": "{0} 弹道轨迹 ({1})",
+  "module.tracers.item.permanent.name": "{0} 弹道轨迹 (永久)",
+
+  "module.tracers.error.permission": "你需要权限 [lightred]{1}[default] 才能购买 [lightred]{0}[default]。",
+  "module.tracers.preview.started": "预览已激活 [lightyellow]{0}[default]，持续 [lightyellow]{1}[default] 秒。开枪测试效果。"
+}

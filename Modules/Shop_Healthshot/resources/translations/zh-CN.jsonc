@@ -1,0 +1,7 @@
+{
+  "shop.prefix": "[gold]★[red] [商店][default]",
+  "module.healthshot.item.instant.name": "医疗针 (即时)",
+  "module.healthshot.item.hourly.name": "医疗针 (1小时)",
+  "module.healthshot.preview.instant": "[lightyellow]{0}[default]：购买后立即给予你一支医疗针。",
+  "module.healthshot.preview.roundstart": "[lightyellow]{0}[default]：装备期间每回合开始时给予你一支医疗针。时长：[lightyellow]{1}[default]。"
+}
