@@ -59,7 +59,7 @@ public class Shop_Healtshot : BasePlugin
 
     public override void OnSharedInterfaceInjected(IInterfaceManager interfaceManager)
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             Core.Logger.LogWarning("ShopCore API is not available. Healthshot test items will not be registered.");
             return;
@@ -80,7 +80,7 @@ public class Shop_Healtshot : BasePlugin
     [GameEventHandler(HookMode.Post)]
     public HookResult OnRoundStart(EventRoundStart @event)
     {
-        if (!handlersRegistered || shopApi is null)
+        if (!handlersRegistered || shopApi == null)
         {
             return HookResult.Continue;
         }
@@ -97,7 +97,7 @@ public class Shop_Healtshot : BasePlugin
 
     private void RegisterItemsAndHandlers()
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return;
         }
@@ -173,7 +173,7 @@ public class Shop_Healtshot : BasePlugin
 
     private void UnregisterItemsAndHandlers()
     {
-        if (!handlersRegistered || shopApi is null)
+        if (!handlersRegistered || shopApi == null)
         {
             return;
         }
@@ -194,7 +194,7 @@ public class Shop_Healtshot : BasePlugin
 
     private void OnItemPurchased(IPlayer player, ShopItemDefinition item)
     {
-        if (shopApi is null || !player.IsValid || player.IsFakeClient)
+        if (shopApi == null || !player.IsValid || player.IsFakeClient)
         {
             return;
         }
@@ -239,7 +239,7 @@ public class Shop_Healtshot : BasePlugin
 
     private void GiveRoundStartHealthshotsToAllPlayers()
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return;
         }
@@ -280,7 +280,7 @@ public class Shop_Healtshot : BasePlugin
                 }
 
                 var itemServices = player.PlayerPawn?.ItemServices;
-                if (itemServices is null || !itemServices.IsValid)
+                if (itemServices == null || !itemServices.IsValid)
                 {
                     return;
                 }
@@ -377,7 +377,7 @@ public class Shop_Healtshot : BasePlugin
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
-            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
+            var localizer = player == null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = localizer[key];
             if (!string.Equals(localized, key, StringComparison.Ordinal))
             {
@@ -535,4 +535,3 @@ internal sealed class HealthshotItemTemplate
     public bool CanBeSold { get; set; } = true;
     public string GrantMode { get; set; } = nameof(HealthshotGrantMode.OnPurchase);
 }
-

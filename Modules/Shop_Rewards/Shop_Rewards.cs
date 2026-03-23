@@ -60,7 +60,7 @@ public class Shop_Rewards : BasePlugin
 
     private void TryLoadConfig()
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return;
         }
@@ -77,7 +77,7 @@ public class Shop_Rewards : BasePlugin
     [GameEventHandler(HookMode.Pre)]
     public HookResult OnMatchEnd(EventCsWinPanelMatch e)
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return HookResult.Continue;
         }
@@ -161,7 +161,7 @@ public class Shop_Rewards : BasePlugin
             return HookResult.Continue;
         }
 
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return HookResult.Continue;
         }
@@ -191,7 +191,7 @@ public class Shop_Rewards : BasePlugin
     {
         lastRoundWinnerTeam = e.Winner;
 
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return HookResult.Continue;
         }
@@ -224,7 +224,7 @@ public class Shop_Rewards : BasePlugin
     [GameEventHandler(HookMode.Pre)]
     public HookResult OnPlayerDeath(EventPlayerDeath e)
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return HookResult.Continue;
         }
@@ -244,7 +244,7 @@ public class Shop_Rewards : BasePlugin
 
         if (e.AttackerPlayer is IPlayer attacker &&
             IsRewardablePlayer(attacker) &&
-            (victim is null || attacker.PlayerID != victim.PlayerID))
+            (victim == null || attacker.PlayerID != victim.PlayerID))
         {
             if (config.Kill > 0)
             {
@@ -262,7 +262,7 @@ public class Shop_Rewards : BasePlugin
         if (config.Assist > 0 &&
             e.AssisterPlayer is IPlayer assister &&
             IsRewardablePlayer(assister) &&
-            (victim is null || assister.PlayerID != victim.PlayerID))
+            (victim == null || assister.PlayerID != victim.PlayerID))
         {
             shopApi.AddCredits(assister, config.Assist);
             SendRewardMessage(assister, "reward.assist", config.Assist);

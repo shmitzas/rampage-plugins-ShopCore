@@ -357,7 +357,7 @@ public interface IShopCoreApiV2
     string? GetShopPrefix(IPlayer? player);
     /// <summary>
     /// Gets recent ledger entries in descending order (newest first).
-    /// If player is not null, it will return 
+    /// If player is not null, it will return
     /// </summary>
     IReadOnlyCollection<ShopLedgerEntry> GetRecentLedgerEntries(int maxEntries = 100);
 

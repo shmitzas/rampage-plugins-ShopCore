@@ -67,7 +67,7 @@ public class Shop_PlayerModels : BasePlugin
 
     public override void OnSharedInterfaceInjected(IInterfaceManager interfaceManager)
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             Core.Logger.LogWarning("ShopCore API is not available. PlayerModels items will not be registered.");
             return;
@@ -113,14 +113,14 @@ public class Shop_PlayerModels : BasePlugin
     public HookResult OnPlayerSpawn(EventPlayerSpawn e)
     {
         var player = Core.PlayerManager.GetPlayer(e.UserId);
-        if (player is null || !player.IsValid || player.IsFakeClient)
+        if (player == null || !player.IsValid || player.IsFakeClient)
         {
             return HookResult.Continue;
         }
 
         Core.Scheduler.NextWorldUpdate(() =>
         {
-            if (player is null || !player.IsValid || player.IsFakeClient)
+            if (player == null || !player.IsValid || player.IsFakeClient)
             {
                 return;
             }
@@ -156,7 +156,7 @@ public class Shop_PlayerModels : BasePlugin
 
     private void RegisterItemsAndHandlers()
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return;
         }
@@ -226,7 +226,7 @@ public class Shop_PlayerModels : BasePlugin
 
     private void UnregisterItemsAndHandlers()
     {
-        if (!handlersRegistered || shopApi is null)
+        if (!handlersRegistered || shopApi == null)
         {
             return;
         }
@@ -278,7 +278,7 @@ public class Shop_PlayerModels : BasePlugin
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
     {
-        if (shopApi is null || !registeredItemIds.Contains(item.Id))
+        if (shopApi == null || !registeredItemIds.Contains(item.Id))
         {
             return;
         }
@@ -341,7 +341,7 @@ public class Shop_PlayerModels : BasePlugin
 
     private void ApplyConfiguredOrDefaultModel(IPlayer player)
     {
-        if (shopApi is null || player is null || !player.IsValid || player.IsFakeClient)
+        if (shopApi == null || player == null || !player.IsValid || player.IsFakeClient)
         {
             return;
         }
@@ -359,7 +359,7 @@ public class Shop_PlayerModels : BasePlugin
     {
         runtime = default;
 
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return false;
         }
@@ -419,13 +419,13 @@ public class Shop_PlayerModels : BasePlugin
 
         Core.Scheduler.NextWorldUpdate(() =>
         {
-            if (player is null || !player.IsValid || player.IsFakeClient)
+            if (player == null || !player.IsValid || player.IsFakeClient)
             {
                 return;
             }
 
             var pawn = player.PlayerPawn;
-            if (pawn is null || !pawn.IsValid || pawn.LifeState != (int)LifeState_t.LIFE_ALIVE)
+            if (pawn == null || !pawn.IsValid || pawn.LifeState != (int)LifeState_t.LIFE_ALIVE)
             {
                 return;
             }
@@ -477,7 +477,7 @@ public class Shop_PlayerModels : BasePlugin
                 var previewRotation = new QAngle(rotation.X, initialYaw, rotation.Z);
 
                 preview = Core.EntitySystem.CreateEntityByDesignerName<CDynamicProp>("prop_dynamic_override");
-                if (preview is null || !preview.IsValid)
+                if (preview == null || !preview.IsValid)
                 {
                     return;
                 }
@@ -638,7 +638,7 @@ public class Shop_PlayerModels : BasePlugin
 
     private void ConfigurePreviewVisibility(CDynamicProp preview, IPlayer previewOwner)
     {
-        if (preview is null || !preview.IsValid || previewOwner is null || !previewOwner.IsValid)
+        if (preview == null || !preview.IsValid || previewOwner == null || !previewOwner.IsValid)
         {
             return;
         }
@@ -662,7 +662,7 @@ public class Shop_PlayerModels : BasePlugin
 
     private void ConfigurePreviewGlow(CDynamicProp preview)
     {
-        if (preview is null || !preview.IsValid)
+        if (preview == null || !preview.IsValid)
         {
             return;
         }
@@ -723,7 +723,7 @@ public class Shop_PlayerModels : BasePlugin
                         return;
                     }
 
-                    if (preview is null || !preview.IsValid)
+                    if (preview == null || !preview.IsValid)
                     {
                         return;
                     }
@@ -751,13 +751,13 @@ public class Shop_PlayerModels : BasePlugin
     {
         pawn = null!;
 
-        if (player is null || !player.IsValid || player.IsFakeClient)
+        if (player == null || !player.IsValid || player.IsFakeClient)
         {
             return false;
         }
 
         var playerPawn = player.PlayerPawn;
-        if (playerPawn is null || !playerPawn.IsValid || playerPawn.LifeState != (int)LifeState_t.LIFE_ALIVE)
+        if (playerPawn == null || !playerPawn.IsValid || playerPawn.LifeState != (int)LifeState_t.LIFE_ALIVE)
         {
             return false;
         }
@@ -863,7 +863,7 @@ public class Shop_PlayerModels : BasePlugin
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
-            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
+            var localizer = player == null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase)
                 ? localizer[key, itemTemplate.ModelName]
                 : localizer[key, itemTemplate.ModelName, FormatDuration(itemTemplate.DurationSeconds)];
@@ -900,7 +900,7 @@ public class Shop_PlayerModels : BasePlugin
             var hours = (int)ts.TotalHours;
             var minutes = ts.Minutes;
             return minutes > 0
-                ? $"{hours} Hour{(hours == 1 ? "" : "s")} {minutes} Minute{(minutes == 1 ? "" : "s")}" 
+                ? $"{hours} Hour{(hours == 1 ? "" : "s")} {minutes} Minute{(minutes == 1 ? "" : "s")}"
                 : $"{hours} Hour{(hours == 1 ? "" : "s")}";
         }
 
@@ -909,7 +909,7 @@ public class Shop_PlayerModels : BasePlugin
             var minutes = (int)ts.TotalMinutes;
             var seconds = ts.Seconds;
             return seconds > 0
-                ? $"{minutes} Minute{(minutes == 1 ? "" : "s")} {seconds} Second{(seconds == 1 ? "" : "s")}" 
+                ? $"{minutes} Minute{(minutes == 1 ? "" : "s")} {seconds} Second{(seconds == 1 ? "" : "s")}"
                 : $"{minutes} Minute{(minutes == 1 ? "" : "s")}";
         }
 
