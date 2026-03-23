@@ -366,4 +366,3 @@ internal sealed class CoinflipModuleConfig
     public double WinChance { get; set; } = 0.5;
     public float WinMultiplier { get; set; } = 2.0f;
 }
-

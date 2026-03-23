@@ -62,7 +62,7 @@ public class Shop_Flags : BasePlugin
 
     public override void OnSharedInterfaceInjected(IInterfaceManager interfaceManager)
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             Core.Logger.LogWarning("ShopCore API is not available. Flags items will not be registered.");
             return;
@@ -92,7 +92,7 @@ public class Shop_Flags : BasePlugin
 
     private void RegisterItemsAndHandlers()
     {
-        if (shopApi is null)
+        if (shopApi == null)
             return;
 
         UnregisterItemsAndHandlers();
@@ -160,7 +160,7 @@ public class Shop_Flags : BasePlugin
 
     private void UnregisterItemsAndHandlers()
     {
-        if (!handlersRegistered || shopApi is null)
+        if (!handlersRegistered || shopApi == null)
             return;
 
         shopApi.OnBeforeItemPurchase -= OnBeforeItemPurchase;
@@ -266,7 +266,7 @@ public class Shop_Flags : BasePlugin
         RunOnMainThread(() =>
         {
             var player = Core.PlayerManager.GetPlayer(@event.PlayerId);
-            if (player is null || !player.IsValid || player.IsFakeClient)
+            if (player == null || !player.IsValid || player.IsFakeClient)
                 return;
 
             steamByPlayerId[player.PlayerID] = player.SteamID;
@@ -296,7 +296,7 @@ public class Shop_Flags : BasePlugin
             RunOnMainThread(() =>
             {
                 var current = Core.PlayerManager.GetPlayer(expectedPlayerId);
-                if (current is null || !current.IsValid || current.IsFakeClient)
+                if (current == null || !current.IsValid || current.IsFakeClient)
                     return;
 
                 if (current.SteamID != expectedSteam)
@@ -340,7 +340,7 @@ public class Shop_Flags : BasePlugin
 
     private void SyncPlayerPermissions(IPlayer player)
     {
-        if (shopApi is null || !player.IsValid || player.IsFakeClient)
+        if (shopApi == null || !player.IsValid || player.IsFakeClient)
             return;
 
         steamByPlayerId[player.PlayerID] = player.SteamID;
@@ -554,7 +554,7 @@ public class Shop_Flags : BasePlugin
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
-            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
+            var localizer = player == null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase)
                 ? localizer[key]
                 : localizer[key, FormatDuration(itemTemplate.DurationSeconds)];

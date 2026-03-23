@@ -69,7 +69,7 @@ public class Shop_PlayerColor : BasePlugin
 
     public override void OnSharedInterfaceInjected(IInterfaceManager interfaceManager)
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             Core.Logger.LogWarning("ShopCore API is not available. PlayerColor items will not be registered.");
             return;
@@ -119,7 +119,7 @@ public class Shop_PlayerColor : BasePlugin
     public HookResult OnPlayerSpawn(EventPlayerSpawn e)
     {
         var player = Core.PlayerManager.GetPlayer(e.UserId);
-        if (!IsRealPlayer(player))
+        if (player == null || !player.IsValid || player.IsFakeClient)
         {
             return HookResult.Continue;
         }
@@ -132,7 +132,7 @@ public class Shop_PlayerColor : BasePlugin
     public HookResult OnPlayerDeath(EventPlayerDeath e)
     {
         var player = Core.PlayerManager.GetPlayer(e.UserId);
-        if (!IsRealPlayer(player))
+        if (player == null || !player.IsValid || player.IsFakeClient)
         {
             return HookResult.Continue;
         }
@@ -150,7 +150,7 @@ public class Shop_PlayerColor : BasePlugin
 
     private void OnTick()
     {
-        if (shopApi is null || !handlersRegistered || registeredItemOrder.Count == 0)
+        if (shopApi == null || !handlersRegistered || registeredItemOrder.Count == 0)
         {
             return;
         }
@@ -206,7 +206,7 @@ public class Shop_PlayerColor : BasePlugin
 
     private void RegisterItemsAndHandlers()
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return;
         }
@@ -274,7 +274,7 @@ public class Shop_PlayerColor : BasePlugin
 
     private void UnregisterItemsAndHandlers()
     {
-        if (!handlersRegistered || shopApi is null)
+        if (!handlersRegistered || shopApi == null)
         {
             return;
         }
@@ -327,7 +327,7 @@ public class Shop_PlayerColor : BasePlugin
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
     {
-        if (shopApi is null || !registeredItemIds.Contains(item.Id))
+        if (shopApi == null || !registeredItemIds.Contains(item.Id))
         {
             return;
         }
@@ -399,7 +399,7 @@ public class Shop_PlayerColor : BasePlugin
 
     private void RefreshPlayerColor(IPlayer player)
     {
-        if (shopApi is null || !player.IsValid || player.IsFakeClient)
+        if (shopApi == null || player == null || !player.IsValid || player.IsFakeClient)
         {
             return;
         }
@@ -445,7 +445,7 @@ public class Shop_PlayerColor : BasePlugin
     {
         runtime = default;
 
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return false;
         }
@@ -542,13 +542,13 @@ public class Shop_PlayerColor : BasePlugin
     {
         pawn = null!;
 
-        if (!player.IsValid)
+        if (player == null || !player.IsValid)
         {
             return false;
         }
 
         var playerPawn = player.PlayerPawn;
-        if (playerPawn is null || !playerPawn.IsValid)
+        if (playerPawn == null || !playerPawn.IsValid)
         {
             return false;
         }
@@ -692,7 +692,7 @@ public class Shop_PlayerColor : BasePlugin
         {
             var key = itemTemplate.DisplayNameKey.Trim();
             string localized;
-            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
+            var localizer = player == null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
 
             if (itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase))
             {
@@ -767,7 +767,7 @@ public class Shop_PlayerColor : BasePlugin
             var hours = (int)ts.TotalHours;
             var minutes = ts.Minutes;
             return minutes > 0
-                ? $"{hours} Hour{(hours == 1 ? "" : "s")} {minutes} Minute{(minutes == 1 ? "" : "s")}" 
+                ? $"{hours} Hour{(hours == 1 ? "" : "s")} {minutes} Minute{(minutes == 1 ? "" : "s")}"
                 : $"{hours} Hour{(hours == 1 ? "" : "s")}";
         }
 
@@ -776,7 +776,7 @@ public class Shop_PlayerColor : BasePlugin
             var minutes = (int)ts.TotalMinutes;
             var seconds = ts.Seconds;
             return seconds > 0
-                ? $"{minutes} Minute{(minutes == 1 ? "" : "s")} {seconds} Second{(seconds == 1 ? "" : "s")}" 
+                ? $"{minutes} Minute{(minutes == 1 ? "" : "s")} {seconds} Second{(seconds == 1 ? "" : "s")}"
                 : $"{minutes} Minute{(minutes == 1 ? "" : "s")}";
         }
 
@@ -914,4 +914,3 @@ internal sealed class PlayerColorItemTemplate
 }
 
 internal readonly record struct PlayerColorPreviewState(PlayerColorItemRuntime Runtime, float ExpiresAt);
-

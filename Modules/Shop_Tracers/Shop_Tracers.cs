@@ -67,7 +67,7 @@ public class Shop_Tracers : BasePlugin
 
     public override void OnSharedInterfaceInjected(IInterfaceManager interfaceManager)
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             Core.Logger.LogWarning("ShopCore API is not available. Tracer items will not be registered.");
             return;
@@ -104,13 +104,13 @@ public class Shop_Tracers : BasePlugin
     [GameEventHandler(HookMode.Pre)]
     public HookResult OnBulletImpact(EventBulletImpact e)
     {
-        if (shopApi is null || !handlersRegistered)
+        if (shopApi == null || !handlersRegistered)
         {
             return HookResult.Continue;
         }
 
         var player = e.UserIdPlayer;
-        if (player is null || !player.IsValid || player.IsFakeClient)
+        if (player == null || !player.IsValid || player.IsFakeClient)
         {
             return HookResult.Continue;
         }
@@ -134,7 +134,7 @@ public class Shop_Tracers : BasePlugin
 
     private void RegisterItemsAndHandlers()
     {
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return;
         }
@@ -204,7 +204,7 @@ public class Shop_Tracers : BasePlugin
 
     private void UnregisterItemsAndHandlers()
     {
-        if (!handlersRegistered || shopApi is null)
+        if (!handlersRegistered || shopApi == null)
         {
             return;
         }
@@ -255,7 +255,7 @@ public class Shop_Tracers : BasePlugin
 
     private void OnItemToggled(IPlayer player, ShopItemDefinition item, bool enabled)
     {
-        if (!enabled || shopApi is null || !registeredItemIds.Contains(item.Id))
+        if (!enabled || shopApi == null || !registeredItemIds.Contains(item.Id))
         {
             return;
         }
@@ -352,7 +352,7 @@ public class Shop_Tracers : BasePlugin
     {
         runtime = default;
 
-        if (shopApi is null)
+        if (shopApi == null)
         {
             return false;
         }
@@ -381,13 +381,13 @@ public class Shop_Tracers : BasePlugin
         start = Vector.Zero;
 
         var pawn = player.PlayerPawn;
-        if (pawn is null || !pawn.IsValid)
+        if (pawn == null || !pawn.IsValid)
         {
             return false;
         }
 
         var origin = pawn.AbsOrigin;
-        if (origin is null)
+        if (origin == null)
         {
             return false;
         }
@@ -429,7 +429,7 @@ public class Shop_Tracers : BasePlugin
         try
         {
             var beam = Core.EntitySystem.CreateEntityByDesignerName<CBeam>("beam");
-            if (beam is null || !beam.IsValid)
+            if (beam == null || !beam.IsValid)
             {
                 return;
             }
@@ -611,7 +611,7 @@ public class Shop_Tracers : BasePlugin
         if (!string.IsNullOrWhiteSpace(itemTemplate.DisplayNameKey))
         {
             var key = itemTemplate.DisplayNameKey.Trim();
-            var localizer = player is null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
+            var localizer = player == null ? Core.Localizer : Core.Translation.GetPlayerLocalizer(player);
             var localized = itemTemplate.Type.Equals(nameof(ShopItemType.Permanent), StringComparison.OrdinalIgnoreCase)
                 ? localizer[key, colorName]
                 : localizer[key, colorName, FormatDuration(itemTemplate.DurationSeconds)];
